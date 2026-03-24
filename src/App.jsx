@@ -39,18 +39,19 @@ function formatDate(date) {
   })
 }
 
-function StatCard({ title, value, subtitle, icon, color }) {
+function StatCard({ title, value, subtitle, icon, color, badge }) {
   return (
     <div className="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-slate-400 text-sm font-medium">{title}</p>
           <p className={`text-3xl font-bold mt-2 ${color}`}>{value}</p>
+          {badge && <p className={`text-xl font-semibold mt-1 ${color}`}>{badge}</p>}
           {subtitle && <p className="text-slate-500 text-xs mt-1">{subtitle}</p>}
         </div>
-        <div className={`p-3 rounded-lg ${color.replace('text-', 'bg-').replace('900', '900/20')}`}>
+        {icon && <div className={`p-3 rounded-lg ${color.replace('text-', 'bg-').replace('900', '900/20')}`}>
           {icon}
-        </div>
+        </div>}
       </div>
     </div>
   )
@@ -90,6 +91,7 @@ function App() {
   const [vendorsData, setVendorsData] = useState([])
   const [latestPrice, setLatestPrice] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
+  const [lowestStation, setLowestStation] = useState(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [loading, setLoading] = useState(true)
   const [visibleStations, setVisibleStations] = useState({})
@@ -97,8 +99,8 @@ function App() {
   const loadData = useCallback(async () => {
     try {
       const [avg, vendors] = await Promise.all([
-        fetchCSV('/data/richmond/avg.csv'),
-        fetchCSV('/data/richmond/vendors.csv')
+        fetchCSV('/gaspricetracker/data/richmond/avg.csv'),
+        fetchCSV('/gaspricetracker/data/richmond/vendors.csv')
       ])
       
       setAvgData(avg)
@@ -140,16 +142,32 @@ function App() {
   const now = Date.now()
   const last24hData = chartData.filter(d => now - d.date <= 24 * 60 * 60 * 1000)
 
+  const last24hVendorPrices = vendorsData
+    .filter(r => now - parseDate(r['capture time']).getTime() <= 24 * 60 * 60 * 1000)
+    .map(r => parseFloat(r.price))
+
   const vendorGroups = vendorsData.reduce((acc, row) => {
     const name = row['station name']
     if (!acc[name]) acc[name] = []
     acc[name].push({
       date: parseDate(row['capture time']).getTime(),
       price: parseFloat(row.price),
-      time: formatDate(parseDate(row['capture time']))
+      time: formatDate(row['capture time'])
     })
     return acc
   }, {})
+
+  const latestTimestamp = vendorsData.length > 0 
+    ? Math.max(...vendorsData.map(r => parseDate(r['capture time']).getTime()))
+    : null
+
+  const latestStations = latestTimestamp 
+    ? vendorsData.filter(r => parseDate(r['capture time']).getTime() === latestTimestamp)
+    : []
+
+  const lowestInLatest = latestStations.length > 0 
+    ? latestStations.reduce((min, r) => parseFloat(r.price) < parseFloat(min.price) ? r : min, latestStations[0])
+    : null
 
   useEffect(() => {
     const initial = {}
@@ -189,7 +207,7 @@ function App() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="text-slate-400 mt-4">Loading dashboard...</p>
+          <p className="text-slate-400 mt-4">Loading ...</p>
         </div>
       </div>
     )
@@ -206,39 +224,25 @@ function App() {
           <ToggleButton enabled={autoRefresh} onToggle={() => setAutoRefresh(!autoRefresh)} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <StatCard
-            title="Latest Average"
+            title="Lowest Price"
+            value={lowestInLatest ? `$${parseFloat(lowestInLatest.price).toFixed(3)}/L` + " (" + lowestInLatest['station name'] + ")" : 'N/A'}
+            subtitle={lowestInLatest ? `Updated: ${formatDate(parseDate( lowestInLatest['capture time']))}` : ''}
+            color="text-emerald-400"
+            
+          />
+          <StatCard
+            title="Average Price"
             value={`$${latestPrice || '0.000'}/L`}
             subtitle={lastUpdated ? `Updated: ${formatDate(parseDate(lastUpdated))}` : ''}
-            color="text-emerald-400"
-            icon={
-              <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            }
+            color="text-amber-400"
           />
           <StatCard
             title="Price Range (24h)"
-            value={last24hData.length > 0 ? `$${Math.min(...last24hData.map(d => d.price)).toFixed(3)} - $${Math.max(...last24hData.map(d => d.price)).toFixed(3)}` : 'N/A'}
-            subtitle="Min to Max"
+            value={last24hVendorPrices.length > 0 ? `$${Math.min(...last24hVendorPrices).toFixed(3)} - $${Math.max(...last24hVendorPrices).toFixed(3)}` : 'N/A'}
+            subtitle="All Stations Min to Max"
             color="text-blue-400"
-            icon={
-              <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-              </svg>
-            }
-          />
-          <StatCard
-            title="Data Points"
-            value={chartData.length}
-            subtitle={`${Object.keys(vendorGroups).length} stations tracked`}
-            color="text-purple-400"
-            icon={
-              <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            }
           />
         </div>
 

@@ -7,6 +7,7 @@ export default defineConfig({
   server: {
     port: 3000
   },
+  base: '/gaspricetracker/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
