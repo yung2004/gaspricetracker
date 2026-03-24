@@ -22,6 +22,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+
       - name: Scrape
         run: npm run scrape
 
@@ -35,6 +38,9 @@ jobs:
           git add public/data/richmond/vendors.csv
           # Only commit if there are actually changes to avoid errors
           git diff --quiet && git diff --staged --quiet || (git commit -m "Automated data update" && git push)
+
+      - name: build 
+        run: npm run build
 
       - name: Deploy
         run: npm run deploy
