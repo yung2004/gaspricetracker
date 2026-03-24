@@ -4,7 +4,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 const API_BASE = ''
 
 async function fetchCSV(url) {
-  const response = await fetch(`${API_BASE}${url}`)
+  const cacheBuster = `?t=${new Date().getTime()}`;
+  const response = await fetch(`${API_BASE}${url}`+cacheBuster)
   const text = await response.text()
   const lines = text.trim().split('\n')
   const headers = lines[0].split(',')
