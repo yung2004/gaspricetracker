@@ -29,8 +29,10 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/richmond/avg,csv
+          git add data/richmond/avg.csv
           git add data/richmond/vendors.csv
+          git add public/data/richmond/avg.csv
+          git add public/data/richmond/vendors.csv
           # Only commit if there are actually changes to avoid errors
           git diff --quiet && git diff --staged --quiet || (git commit -m "Automated data update" && git push)
 
