@@ -220,7 +220,7 @@ function App() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white">Richmond Gas Prices</h1>
-            <p className="text-slate-400 mt-1">Real-time fuel price monitoring</p>
+            <p className="text-slate-400 mt-1">Fuel price tracker</p>
           </div>
           <ToggleButton enabled={autoRefresh} onToggle={() => setAutoRefresh(!autoRefresh)} />
         </div>
@@ -343,6 +343,7 @@ function App() {
 
         <div className="mt-6 text-center text-slate-500 text-sm">
           <p>Auto-refresh every 5 minutes {autoRefresh ? '• Enabled' : '• Disabled'}</p>
+          <p>Data Source from GasBuddy</p>
         </div>
       </div>
     </div>
